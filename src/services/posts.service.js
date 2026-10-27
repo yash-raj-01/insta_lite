@@ -40,9 +40,25 @@ async function listPosts(page, limit, sortBy, order, filters = {}) {
 
 
 
+const userSummarySelect = {
+  id: true,
+  username: true,
+  fullname: true,
+};
+
 const getPostById = async (id) => {
   return await prisma.post.findUnique({
     where: { id },
+    include: {
+      author: {
+        select: userSummarySelect,
+      },
+      _count: {
+        select: {
+          likes: true,
+        },
+      },
+    },
   });
 };
 
