@@ -9,7 +9,7 @@ const createUser = async (data) => {
   return user;
 };
 
-async function listUsers(page, limit) {
+async function listUsers(page, limit, sortBy, order) {
   const skip = (page - 1) * limit;
 
   const [users, total] = await prisma.$transaction([
@@ -17,7 +17,7 @@ async function listUsers(page, limit) {
       skip: skip,
       take: limit,
       orderBy: {
-        createdAt: "desc",
+        [sortBy]: order,
       },
     }),
 

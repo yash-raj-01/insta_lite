@@ -37,6 +37,14 @@ async function list(req, res) {
     ? 10
     : Number(req.query.limit);
 
+  const sortBy = req.query.sortBy === undefined
+    ? "createdAt"
+    : req.query.sortBy;
+
+  const order = req.query.order === undefined
+    ? "desc"
+    : req.query.order;
+
   if (
     !Number.isInteger(page) ||
     page <= 0 ||
@@ -48,9 +56,28 @@ async function list(req, res) {
     });
   }
 
+  const allowedSortFields = ["createdAt", "username", "fullname"];
+
+  if (!allowedSortFields.includes(sortBy)) {
+    return res.status(400).json({
+      error: "sortBy must be one of: createdAt, username, fullname",
+    });
+  }
+
+  if (order !== "asc" && order !== "desc") {
+    return res.status(400).json({
+      error: "order must be asc or desc",
+    });
+  }
+
   const limit = Math.min(requestedLimit, 50);
 
-  const result = await usersService.listUsers(page, limit);
+  const result = await usersService.listUsers(
+    page,
+    limit,
+    sortBy,
+    order
+  );
 
   return res.status(200).json(result);
 }
