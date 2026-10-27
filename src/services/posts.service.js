@@ -12,13 +12,33 @@ const createPost = async (data) => {
 async function listPosts(page, limit, sortBy, order, filters = {}) {
   const skip = (page - 1) * limit;
 
+  let orderBy;
+  if (sortBy === "likes") {
+    orderBy = [
+      { likes: { _count: order } },
+      { createdAt: "desc" },
+    ];
+  } else {
+    orderBy = {
+      [sortBy]: order,
+    };
+  }
+
   const [posts, total] = await prisma.$transaction([
     prisma.post.findMany({
       where: filters,
       skip: skip,
       take: limit,
-      orderBy: {
-        [sortBy]: order,
+      orderBy: orderBy,
+      include: {
+        author: {
+          select: userSummarySelect,
+        },
+        _count: {
+          select: {
+            likes: true,
+          },
+        },
       },
     }),
 
