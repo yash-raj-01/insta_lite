@@ -47,6 +47,7 @@ async function list(req, res) {
     : req.query.order;
 
   const isPrivate = req.query.isPrivate;
+  const hasPosts = req.query.hasPosts;
   const search = req.query.search;
 
 
@@ -87,12 +88,26 @@ async function list(req, res) {
     });
   }
 
+  if (
+    hasPosts !== undefined &&
+    hasPosts !== "true" &&
+    hasPosts !== "false"
+  ) {
+    return res.status(400).json({
+      error: "hasPosts must be true or false",
+    });
+  }
+
   const limit = Math.min(requestedLimit, 50);
 
   const filters = {};
 
   if (isPrivate !== undefined) {
     filters.isPrivate = isPrivate === "true";
+  }
+
+  if (hasPosts !== undefined) {
+    filters.posts = hasPosts === "true" ? { some: {} } : { none: {} };
   }
 
   if (search !== undefined) {

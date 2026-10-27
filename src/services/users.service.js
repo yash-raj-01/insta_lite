@@ -43,6 +43,14 @@ async function listUsers(page, limit, sortBy, order, filters = {}) {
 const getUserById = async (id) => {
   const user = await prisma.user.findUnique({
     where: { id },
+    include: {
+      _count: {
+        select: {
+          posts: true,
+          likes: true,
+        },
+      },
+    },
   });
 
   return user;
