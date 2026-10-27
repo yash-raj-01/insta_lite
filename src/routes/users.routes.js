@@ -11,5 +11,6 @@ router.delete("/:id", usersController.remove);
 
 // Nested user routes
 router.get("/:id/posts", usersController.getUserPosts);
+router.get("/:id/liked-posts", usersController.getLikedPosts);
 
 module.exports = router;

@@ -1,13 +1,16 @@
-
 const prisma = require("../db");
+
+const userSummarySelect = {
+  id: true,
+  username: true,
+  fullname: true,
+};
 
 const createPost = async (data) => {
   return await prisma.post.create({
     data,
   });
 };
-
-
 
 async function listPosts(page, limit, sortBy, order, filters = {}) {
   const skip = (page - 1) * limit;
@@ -57,14 +60,6 @@ async function listPosts(page, limit, sortBy, order, filters = {}) {
     },
   };
 }
-
-
-
-const userSummarySelect = {
-  id: true,
-  username: true,
-  fullname: true,
-};
 
 const getPostById = async (id) => {
   return await prisma.post.findUnique({
@@ -131,6 +126,52 @@ async function listPostsByAuthor(authorId, page, limit) {
   };
 }
 
+async function listLikedPostsByUser(userId, page, limit) {
+  const skip = (page - 1) * limit;
+  const where = {
+    likes: {
+      some: {
+        userId,
+      },
+    },
+  };
+
+  const [posts, total] = await prisma.$transaction([
+    prisma.post.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        author: {
+          select: userSummarySelect,
+        },
+        _count: {
+          select: {
+            likes: true,
+          },
+        },
+      },
+    }),
+
+    prisma.post.count({
+      where,
+    }),
+  ]);
+
+  return {
+    data: posts,
+    meta: {
+      page: page,
+      limit: limit,
+      total: total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
 module.exports = {
   createPost,
   listPosts,
@@ -138,4 +179,5 @@ module.exports = {
   updatePost,
   deletePost,
   listPostsByAuthor,
+  listLikedPostsByUser,
 };

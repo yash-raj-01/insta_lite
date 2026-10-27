@@ -1,6 +1,6 @@
-
 const usersService = require("../services/users.service");
-
+const postsService = require("../services/posts.service");
+const { parsePagination } = require("../utils/pagination");
 
 const create = async (req, res) => {
   const { username, email, fullname, bio } = req.body;
@@ -19,18 +19,11 @@ const create = async (req, res) => {
 
   try {
     const user = await usersService.createUser(data);
-
     return res.status(201).json(user);
   } catch (error) {
-    
     return res.status(500).json({ error: "Internal server error" });
   }
 };
-
-
-
-const postsService = require("../services/posts.service");
-const { parsePagination } = require("../utils/pagination");
 
 async function list(req, res) {
   const pagination = parsePagination(req.query);
@@ -52,7 +45,6 @@ async function list(req, res) {
   const hasPosts = req.query.hasPosts;
   const search = req.query.search;
 
-
   const allowedSortFields = ["createdAt", "username", "fullname"];
 
   if (!allowedSortFields.includes(sortBy)) {
@@ -60,7 +52,6 @@ async function list(req, res) {
       error: "sortBy must be one of: createdAt, username, fullname",
     });
   }
-
 
   if (order !== "asc" && order !== "desc") {
     return res.status(400).json({
@@ -87,8 +78,6 @@ async function list(req, res) {
       error: "hasPosts must be true or false",
     });
   }
-
-  const limit = Math.min(requestedLimit, 50);
 
   const filters = {};
 
@@ -117,17 +106,20 @@ async function list(req, res) {
     ];
   }
 
-  const result = await usersService.listUsers(
-    page,
-    limit,
-    sortBy,
-    order,
-    filters
-  );
+  try {
+    const result = await usersService.listUsers(
+      page,
+      limit,
+      sortBy,
+      order,
+      filters
+    );
 
-  return res.status(200).json(result);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
 }
-
 
 const getOne = async (req, res) => {
   const id = Number(req.params.id);
@@ -173,9 +165,11 @@ const update = async (req, res) => {
 
   try {
     const user = await usersService.updateUser(id, data);
-
     return res.status(200).json(user);
   } catch (error) {
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "User not found" });
+    }
     return res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -189,10 +183,11 @@ const remove = async (req, res) => {
 
   try {
     await usersService.deleteUser(id);
-
     return res.status(204).send();
   } catch (error) {
-    
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "User not found" });
+    }
     return res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -227,6 +222,36 @@ const getUserPosts = async (req, res) => {
   }
 };
 
+const getLikedPosts = async (req, res) => {
+  const userId = Number(req.params.id);
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  const pagination = parsePagination(req.query);
+
+  if (pagination.error) {
+    return res.status(400).json({
+      error: pagination.error,
+    });
+  }
+
+  const { page, limit } = pagination;
+
+  try {
+    const user = await usersService.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const result = await postsService.listLikedPostsByUser(userId, page, limit);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -234,4 +259,5 @@ module.exports = {
   update,
   remove,
   getUserPosts,
+  getLikedPosts,
 };
