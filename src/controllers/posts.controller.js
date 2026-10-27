@@ -2,29 +2,58 @@
 const postsService = require("../services/posts.service");
 
 
-const create = async (req, res) => {
-  const { imageUrl, caption, location } = req.body;
+const usersService = require("../services/users.service");
 
-  if (!imageUrl) {
+const create = async (req, res) => {
+  const { imageUrl, authorId, caption, location } = req.body;
+
+  if (
+    !imageUrl ||
+    authorId === undefined ||
+    authorId === null ||
+    authorId === ""
+  ) {
     return res.status(400).json({
-      error: "imageUrl is required",
+      error: "imageUrl and authorId are required",
     });
   }
 
-  const data = { imageUrl };
-
-  if (caption !== undefined) {
-    data.caption = caption;
-  }
-
-  if (location !== undefined) {
-    data.location = location;
+  const numericAuthorId = Number(authorId);
+  if (!Number.isInteger(numericAuthorId) || numericAuthorId <= 0) {
+    return res.status(404).json({
+      error: "User not found",
+    });
   }
 
   try {
+    const user = await usersService.getUserById(numericAuthorId);
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found",
+      });
+    }
+
+    const data = {
+      imageUrl,
+      authorId: numericAuthorId,
+    };
+
+    if (caption !== undefined) {
+      data.caption = caption;
+    }
+
+    if (location !== undefined) {
+      data.location = location;
+    }
+
     const post = await postsService.createPost(data);
     return res.status(201).json(post);
   } catch (error) {
+    if (error.code === "P2003") {
+      return res.status(404).json({
+        error: "User not found",
+      });
+    }
     return res.status(500).json({ error: "Internal server error" });
   }
 };
