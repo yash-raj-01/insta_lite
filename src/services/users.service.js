@@ -9,11 +9,31 @@ const createUser = async (data) => {
   return user;
 };
 
-const listUsers = async () => {
-  const users = await prisma.user.findMany();
+async function listUsers(page, limit) {
+  const skip = (page - 1) * limit;
 
-  return users;
-};
+  const [users, total] = await prisma.$transaction([
+    prisma.user.findMany({
+      skip: skip,
+      take: limit,
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+
+    prisma.user.count(),
+  ]);
+
+  return {
+    data: users,
+    meta: {
+      page: page,
+      limit: limit,
+      total: total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
 
 const getUserById = async (id) => {
   const user = await prisma.user.findUnique({
