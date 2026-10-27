@@ -95,10 +95,47 @@ const deletePost = async (id) => {
   });
 };
 
+async function listPostsByAuthor(authorId, page, limit) {
+  const skip = (page - 1) * limit;
+
+  const [posts, total] = await prisma.$transaction([
+    prisma.post.findMany({
+      where: { authorId },
+      skip,
+      take: limit,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        _count: {
+          select: {
+            likes: true,
+          },
+        },
+      },
+    }),
+
+    prisma.post.count({
+      where: { authorId },
+    }),
+  ]);
+
+  return {
+    data: posts,
+    meta: {
+      page: page,
+      limit: limit,
+      total: total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
 module.exports = {
   createPost,
   listPosts,
   getPostById,
   updatePost,
   deletePost,
+  listPostsByAuthor,
 };

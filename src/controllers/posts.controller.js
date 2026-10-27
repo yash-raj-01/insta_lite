@@ -61,38 +61,28 @@ const create = async (req, res) => {
 
 
 
+const { parsePagination } = require("../utils/pagination");
+
 async function list(req, res) {
-  const page = req.query.page === undefined
-    ? 1
-    : Number(req.query.page);
+  const pagination = parsePagination(req.query);
 
-  const requestedLimit = req.query.limit === undefined
-    ? 10
-    : Number(req.query.limit);
+  if (pagination.error) {
+    return res.status(400).json({
+      error: pagination.error,
+    });
+  }
 
-  const sortBy = req.query.sortBy === undefined
-    ? "createdAt"
-    : req.query.sortBy;
+  const { page, limit } = pagination;
 
-  const order = req.query.order === undefined
-    ? "desc"
-    : req.query.order;
+  const sortBy =
+    req.query.sortBy === undefined ? "createdAt" : req.query.sortBy;
+
+  const order = req.query.order === undefined ? "desc" : req.query.order;
 
   const location = req.query.location;
   const search = req.query.search;
   const from = req.query.from;
   const to = req.query.to;
-
-  if (
-    !Number.isInteger(page) ||
-    page <= 0 ||
-    !Number.isInteger(requestedLimit) ||
-    requestedLimit <= 0
-  ) {
-    return res.status(400).json({
-      error: "page and limit must be positive integers",
-    });
-  }
 
   const allowedSortFields = ["createdAt", "updatedAt", "likes"];
 

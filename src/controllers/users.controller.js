@@ -29,38 +29,28 @@ const create = async (req, res) => {
 
 
 
+const postsService = require("../services/posts.service");
+const { parsePagination } = require("../utils/pagination");
+
 async function list(req, res) {
-  const page = req.query.page === undefined
-    ? 1
-    : Number(req.query.page);
+  const pagination = parsePagination(req.query);
 
-  const requestedLimit = req.query.limit === undefined
-    ? 10
-    : Number(req.query.limit);
+  if (pagination.error) {
+    return res.status(400).json({
+      error: pagination.error,
+    });
+  }
 
-  const sortBy = req.query.sortBy === undefined
-    ? "createdAt"
-    : req.query.sortBy;
+  const { page, limit } = pagination;
 
-  const order = req.query.order === undefined
-    ? "desc"
-    : req.query.order;
+  const sortBy =
+    req.query.sortBy === undefined ? "createdAt" : req.query.sortBy;
+
+  const order = req.query.order === undefined ? "desc" : req.query.order;
 
   const isPrivate = req.query.isPrivate;
   const hasPosts = req.query.hasPosts;
   const search = req.query.search;
-
-
-  if (
-    !Number.isInteger(page) ||
-    page <= 0 ||
-    !Number.isInteger(requestedLimit) ||
-    requestedLimit <= 0
-  ) {
-    return res.status(400).json({
-      error: "page and limit must be positive integers",
-    });
-  }
 
 
   const allowedSortFields = ["createdAt", "username", "fullname"];
@@ -207,10 +197,41 @@ const remove = async (req, res) => {
   }
 };
 
+const getUserPosts = async (req, res) => {
+  const userId = Number(req.params.id);
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  const pagination = parsePagination(req.query);
+
+  if (pagination.error) {
+    return res.status(400).json({
+      error: pagination.error,
+    });
+  }
+
+  const { page, limit } = pagination;
+
+  try {
+    const user = await usersService.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const result = await postsService.listPostsByAuthor(userId, page, limit);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   create,
   list,
   getOne,
   update,
   remove,
+  getUserPosts,
 };

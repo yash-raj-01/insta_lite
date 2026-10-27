@@ -9,4 +9,7 @@ router.get("/:id", usersController.getOne);
 router.patch("/:id", usersController.update);
 router.delete("/:id", usersController.remove);
 
+// Nested user routes
+router.get("/:id/posts", usersController.getUserPosts);
+
 module.exports = router;
