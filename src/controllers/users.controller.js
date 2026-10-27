@@ -49,7 +49,7 @@ async function list(req, res) {
   const isPrivate = req.query.isPrivate;
   const search = req.query.search;
 
-  // Validate pagination
+
   if (
     !Number.isInteger(page) ||
     page <= 0 ||
@@ -61,7 +61,7 @@ async function list(req, res) {
     });
   }
 
-  // Validate sorting field
+
   const allowedSortFields = ["createdAt", "username", "fullname"];
 
   if (!allowedSortFields.includes(sortBy)) {
@@ -70,14 +70,13 @@ async function list(req, res) {
     });
   }
 
-  // Validate sorting order
+
   if (order !== "asc" && order !== "desc") {
     return res.status(400).json({
       error: "order must be asc or desc",
     });
   }
 
-  // Validate isPrivate
   if (
     isPrivate !== undefined &&
     isPrivate !== "true" &&

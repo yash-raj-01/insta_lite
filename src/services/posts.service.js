@@ -8,11 +8,13 @@ const createPost = async (data) => {
 };
 
 
-async function listPosts(page, limit, sortBy, order) {
+
+async function listPosts(page, limit, sortBy, order, filters = {}) {
   const skip = (page - 1) * limit;
 
   const [posts, total] = await prisma.$transaction([
     prisma.post.findMany({
+      where: filters,
       skip: skip,
       take: limit,
       orderBy: {
@@ -20,7 +22,9 @@ async function listPosts(page, limit, sortBy, order) {
       },
     }),
 
-    prisma.post.count(),
+    prisma.post.count({
+      where: filters,
+    }),
   ]);
 
   return {
@@ -33,6 +37,7 @@ async function listPosts(page, limit, sortBy, order) {
     },
   };
 }
+
 
 
 const getPostById = async (id) => {

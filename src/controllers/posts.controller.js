@@ -31,6 +31,7 @@ const create = async (req, res) => {
 
 
 
+
 async function list(req, res) {
   const page = req.query.page === undefined
     ? 1
@@ -48,6 +49,10 @@ async function list(req, res) {
     ? "desc"
     : req.query.order;
 
+  const location = req.query.location;
+  const search = req.query.search;
+  const from = req.query.from;
+  const to = req.query.to;
 
   if (
     !Number.isInteger(page) ||
@@ -74,17 +79,71 @@ async function list(req, res) {
     });
   }
 
+  function isValidDate(value) {
+    if (value === undefined) {
+      return true;
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return false;
+    }
+
+    const date = new Date(`${value}T00:00:00.000Z`);
+
+    return (
+      !Number.isNaN(date.getTime()) &&
+      date.toISOString().slice(0, 10) === value
+    );
+  }
+
+  if (!isValidDate(from) || !isValidDate(to)) {
+    return res.status(400).json({
+      error: "from and to must be valid dates",
+    });
+  }
+
   const limit = Math.min(requestedLimit, 50);
+
+  const filters = {};
+
+
+  if (location !== undefined) {
+    filters.location = {
+      equals: location,
+      mode: "insensitive",
+    };
+  }
+
+  if (search !== undefined) {
+    filters.caption = {
+      contains: search,
+      mode: "insensitive",
+    };
+  }
+
+  if (from !== undefined || to !== undefined) {
+    filters.createdAt = {};
+
+    if (from !== undefined) {
+      filters.createdAt.gte = new Date(`${from}T00:00:00.000Z`);
+    }
+
+    if (to !== undefined) {
+      filters.createdAt.lt = new Date(`${to}T00:00:00.000Z`);
+    }
+  }
 
   const result = await postsService.listPosts(
     page,
     limit,
     sortBy,
-    order
+    order,
+    filters
   );
 
   return res.status(200).json(result);
 }
+
 
 
 const getOne = async (req, res) => {
