@@ -28,6 +28,7 @@ const create = async (req, res) => {
 };
 
 
+
 async function list(req, res) {
   const page = req.query.page === undefined
     ? 1
@@ -45,6 +46,10 @@ async function list(req, res) {
     ? "desc"
     : req.query.order;
 
+  const isPrivate = req.query.isPrivate;
+  const search = req.query.search;
+
+  // Validate pagination
   if (
     !Number.isInteger(page) ||
     page <= 0 ||
@@ -56,6 +61,7 @@ async function list(req, res) {
     });
   }
 
+  // Validate sorting field
   const allowedSortFields = ["createdAt", "username", "fullname"];
 
   if (!allowedSortFields.includes(sortBy)) {
@@ -64,23 +70,60 @@ async function list(req, res) {
     });
   }
 
+  // Validate sorting order
   if (order !== "asc" && order !== "desc") {
     return res.status(400).json({
       error: "order must be asc or desc",
     });
   }
 
+  // Validate isPrivate
+  if (
+    isPrivate !== undefined &&
+    isPrivate !== "true" &&
+    isPrivate !== "false"
+  ) {
+    return res.status(400).json({
+      error: "isPrivate must be true or false",
+    });
+  }
+
   const limit = Math.min(requestedLimit, 50);
+
+  const filters = {};
+
+  if (isPrivate !== undefined) {
+    filters.isPrivate = isPrivate === "true";
+  }
+
+  if (search !== undefined) {
+    filters.OR = [
+      {
+        username: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+      {
+        fullname: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+    ];
+  }
 
   const result = await usersService.listUsers(
     page,
     limit,
     sortBy,
-    order
+    order,
+    filters
   );
 
   return res.status(200).json(result);
 }
+
 
 const getOne = async (req, res) => {
   const id = Number(req.params.id);

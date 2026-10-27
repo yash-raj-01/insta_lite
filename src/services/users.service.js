@@ -9,11 +9,13 @@ const createUser = async (data) => {
   return user;
 };
 
-async function listUsers(page, limit, sortBy, order) {
+
+async function listUsers(page, limit, sortBy, order, filters = {}) {
   const skip = (page - 1) * limit;
 
   const [users, total] = await prisma.$transaction([
     prisma.user.findMany({
+      where: filters,
       skip: skip,
       take: limit,
       orderBy: {
@@ -21,7 +23,9 @@ async function listUsers(page, limit, sortBy, order) {
       },
     }),
 
-    prisma.user.count(),
+    prisma.user.count({
+      where: filters,
+    }),
   ]);
 
   return {
@@ -34,6 +38,7 @@ async function listUsers(page, limit, sortBy, order) {
     },
   };
 }
+
 
 const getUserById = async (id) => {
   const user = await prisma.user.findUnique({
